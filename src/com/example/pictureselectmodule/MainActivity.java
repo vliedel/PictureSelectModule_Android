@@ -3,6 +3,7 @@ package com.example.pictureselectmodule;
 //import com.example.dodedodo.XMPPService;
 
 import java.io.File;
+import org.dobots.pictureselectmodule.R;
 
 import android.net.Uri;
 import android.os.Bundle;
