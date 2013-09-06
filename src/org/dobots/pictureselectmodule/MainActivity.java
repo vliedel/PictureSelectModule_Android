@@ -1,6 +1,6 @@
-package com.example.pictureselectmodule;
+package org.dobots.pictureselectmodule;
 
-//import com.example.dodedodo.XMPPService;
+//import org.dobots.dodedodo.XMPPService;
 
 import java.io.File;
 import org.dobots.pictureselectmodule.R;
@@ -233,9 +233,9 @@ public class MainActivity extends Activity {
 		//bindService(new Intent(this, XMPPService.class), mConnection, Context.BIND_AUTO_CREATE);
 		
 		Intent intent = new Intent();
-//		intent.setComponent(new ComponentName("com.example.dodedodo", "com.example.dodedodo.XMPPService"));
-		intent.setClassName("com.example.dodedodo", "com.example.dodedodo.MsgService");
-//		intent.setClassName("com.example.dodedodo", "XMPPService");
+//		intent.setComponent(new ComponentName("org.dobots.dodedodo", "org.dobots.dodedodo.XMPPService"));
+		intent.setClassName("org.dobots.dodedodo", "org.dobots.dodedodo.MsgService");
+//		intent.setClassName("org.dobots.dodedodo", "XMPPService");
 		bindService(intent, mMsgServiceConnection, Context.BIND_AUTO_CREATE);
 //		bindService(new Intent(this, XMPPService.class), mConnection, Context.BIND_AUTO_CREATE);
 //		Log.i(TAG, "binding to: " + XMPPService.class.toString());
