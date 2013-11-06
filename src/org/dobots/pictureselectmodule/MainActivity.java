@@ -2,7 +2,11 @@ package org.dobots.pictureselectmodule;
 
 //import org.dobots.dodedodo.XMPPService;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+
 import org.dobots.pictureselectmodule.R;
 
 import android.net.Uri;
@@ -21,6 +25,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.support.v4.view.GestureDetectorCompat;
 import android.text.TextUtils;
@@ -52,37 +57,14 @@ public class MainActivity extends Activity {
 	
 	Messenger mToMsgService = null;
 	final Messenger mFromMsgService = new Messenger(new IncomingMsgHandler());
-	/** Flag indicating whether we have called bind on the service. */
 	boolean mMsgServiceIsBound;
 	
-	Messenger mPortOutMessenger = null;
+	Messenger mPortPositionMessenger = null;
+	Messenger mPortImageMessenger = null;
 	
 	private GestureDetectorCompat mGestureDetector;
 
-	
-	// Copied from MsgService, should be an include?
-	public static final int MSG_REGISTER = 1;
-	public static final int MSG_UNREGISTER = 2;
-	public static final int MSG_SET_MESSENGER = 3;
-	public static final int MSG_START = 4;
-	public static final int MSG_STOP = 5;
-	public static final int MSG_SEND = 6;
-	public static final int MSG_XMPP_LOGIN = 7;
-	public static final int MSG_ADD_PORT = 8;
-	public static final int MSG_REM_PORT = 9;
-	public static final int MSG_XMPP_LOGGED_IN = 10;
-	public static final int MSG_XMPP_DISCONNECTED = 11;
-	public static final int MSG_PORT_DATA = 12;
-	public static final int MSG_USER_LOGIN = 13;
-	public static final int MSG_GET_MESSENGER = 14;
-		
-	public static final int DATATYPE_FLOAT = 1;
-	public static final int DATATYPE_FLOAT_ARRAY = 2;
-	public static final int DATATYPE_STRING = 3;
-	public static final int DATATYPE_IMAGE = 4;
-	public static final int DATATYPE_BINARY = 5;
-
-	// onCreate -> onStart -> onResume
+		// onCreate -> onStart -> onResume
 	// onPause -> onResume
 	// onPause -> onStop -> onRestart -> onStart -> onResume
 	// onPause -> onStop -> onDestroy
@@ -94,36 +76,36 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 		
 		mCallbackText = (TextView) findViewById(R.id.messageOutput);
-		mEditText = (EditText) findViewById(R.id.messageInput);
-		mButtonSend = (Button) findViewById(R.id.buttonSend);
+//		mEditText = (EditText) findViewById(R.id.messageInput);
+//		mButtonSend = (Button) findViewById(R.id.buttonSend);
 		mButtonImage = (Button) findViewById(R.id.buttonImage);
-		mButtonLogin = (Button) findViewById(R.id.buttonLogin);
+//		mButtonLogin = (Button) findViewById(R.id.buttonLogin);
 		mImageView = (ImageView) findViewById(R.id.imageView);
 		
-		mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-		    @Override
-		    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-		        if (actionId == R.id.sendMsg || actionId == EditorInfo.IME_ACTION_SEND) {
-		            sendMessage();
-		            return true;
-		        }
-		        return false;
-		    }
-		});
+//		mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+//		    @Override
+//		    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+//		        if (actionId == R.id.sendMsg || actionId == EditorInfo.IME_ACTION_SEND) {
+//		            sendMessage();
+//		            return true;
+//		        }
+//		        return false;
+//		    }
+//		});
 		
-		mButtonSend.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-		        sendMessage();
-		    }
-		});
+//		mButtonSend.setOnClickListener(new View.OnClickListener() {
+//			@Override
+//			public void onClick(View v) {
+//		        sendMessage();
+//		    }
+//		});
 		
-		mButtonLogin.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-//		        login();
-		    }
-		});
+//		mButtonLogin.setOnClickListener(new View.OnClickListener() {
+//			@Override
+//			public void onClick(View v) {
+////		        login();
+//		    }
+//		});
 		
 		mButtonImage.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -186,7 +168,7 @@ public class MainActivity extends Activity {
 			mToMsgService = new Messenger(service);
 			mCallbackText.setText("Connected to Dodedodo.");
 
-			Message msg = Message.obtain(null, MSG_REGISTER);
+			Message msg = Message.obtain(null, AimProtocol.MSG_REGISTER);
 			Bundle bundle = new Bundle();
 			bundle.putString("module", MODULE_NAME);
 			bundle.putInt("id", 0);
@@ -212,12 +194,14 @@ public class MainActivity extends Activity {
 		@Override
 		public void handleMessage(Message msg) {
 			switch (msg.what) {
-			case MSG_SET_MESSENGER:
+			case AimProtocol.MSG_SET_MESSENGER:
 				Log.i(TAG, "set port: " + msg.getData().getString("port") + " to: " + msg.replyTo.toString());
-				if (msg.getData().getString("port").equals("out"))
-					mPortOutMessenger = msg.replyTo;
+				if (msg.getData().getString("port").equals("position"))
+					mPortPositionMessenger = msg.replyTo;
+				if (msg.getData().getString("port").equals("image"))
+					mPortImageMessenger = msg.replyTo;
 				break;
-			case MSG_STOP:
+			case AimProtocol.MSG_STOP:
 				Log.i(TAG, "stopping");
 				finish();
 				break;
@@ -247,7 +231,7 @@ public class MainActivity extends Activity {
 		if (mMsgServiceIsBound) {
 			// If we have received the service, and registered with it, then now is the time to unregister.
 			if (mToMsgService != null) {
-				Message msg = Message.obtain(null, MSG_UNREGISTER);
+				Message msg = Message.obtain(null, AimProtocol.MSG_UNREGISTER);
 				Bundle bundle = new Bundle();
 				bundle.putString("module", MODULE_NAME);
 				bundle.putInt("id", 0);
@@ -279,26 +263,26 @@ public class MainActivity extends Activity {
 		if (messenger == null)
 			return;
 		try {
-			msg.replyTo = mFromMsgService;
+//			msg.replyTo = mFromMsgService;
 			messenger.send(msg);
 		} catch (RemoteException e) {
-			Log.i(TAG, "failed to send msg to service. " + e);
+			Log.i(TAG, "failed to send msg. " + e);
 			// There is nothing special we need to do if the service has crashed.
 		}
 	}
 
 	public void sendMessage() {
 		// Do something in response to button click
-		String text = mEditText.getText().toString();
-		if (TextUtils.isEmpty(text))
-			return;
-		Message msg = Message.obtain(null, MSG_PORT_DATA);
-		Bundle bundle = new Bundle();
-		bundle.putInt("datatype", DATATYPE_STRING);
-		bundle.putString("data", text);
-		msg.setData(bundle);
-		msgSend(mPortOutMessenger, msg);
-		mEditText.getText().clear();
+//		String text = mEditText.getText().toString();
+//		if (TextUtils.isEmpty(text))
+//			return;
+//		Message msg = Message.obtain(null, AimProtocol.MSG_PORT_DATA);
+//		Bundle bundle = new Bundle();
+//		bundle.putInt("datatype", AimProtocol.DATATYPE_STRING);
+//		bundle.putString("data", text);
+//		msg.setData(bundle);
+//		msgSend(mPortOutMessenger, msg);
+//		mEditText.getText().clear();
 	}
 
 	
@@ -338,13 +322,97 @@ public class MainActivity extends Activity {
 			
 			cursor.close();
 			
-			Bitmap selectedImageBitmap = BitmapFactory.decodeFile(filePath);
-			mImageView.setImageBitmap(selectedImageBitmap);
+			File file = new File(filePath);
+			Bitmap scaledImage = decodeFile(file, 100*100); //  150*200 is possible for the messenger, but xmpp can't handle it
 			
+//			Bitmap selectedImageBitmap = BitmapFactory.decodeFile(filePath);
+//			mImageView.setImageBitmap(selectedImageBitmap);
+//			
+//			Bitmap scaledImage = Bitmap.createScaledBitmap(selectedImageBitmap, 64, 64, true);
+			mImageView.setImageBitmap(scaledImage);
+
+			
+//			ByteArrayOutputStream os = new ByteArrayOutputStream();
+//			scaledImage.compress(CompressFormat.JPEG, 100, os);
+//			byte[] bytes = os.toByteArray();
+//
+//			int[] msgData = new int[bytes.length + 2];
+//			msgData[0] = 1; // Ndims
+//			msgData[1] = bytes.length;
+//			for (int i=0; i<bytes.length; ++i) {
+//				msgData[i+2] = bytes[i] & 0xFF;
+//			}
+
+			int[] pixels = new int[scaledImage.getWidth() * scaledImage.getHeight()];
+			scaledImage.getPixels(pixels, 0, scaledImage.getWidth(), 0, 0, scaledImage.getWidth(), scaledImage.getHeight());
+			
+			int width, height;
+			width = scaledImage.getWidth();
+			height = scaledImage.getHeight();
+			
+			int[] msgData = new int[width * height * 3 + 4];
+			msgData[0] = 3; // Ndims
+			msgData[1] = height; // size dim 1
+			msgData[2] = width; // size dim 2
+			msgData[3] = 3; // size dim 3 (rgb)
+			
+			Log.i(TAG, "height=" + height + "width=" + width);
+//			if (scaledImage.getConfig().equals(Bitmap.Config.RGB_565)) {
+//				for (int i=0, j=4; i<pixels.length; ++i, j+=3) {
+//					msgData[j] = ((pixels[i] >> 11) & 0x1F)*8; // 5 bits to 8 bits
+//					msgData[j+1] = ((pixels[i] >> 5) & 0x3F)*4; // 6 bits to 8 bits
+//					msgData[j+2] = (pixels[i] & 0x1F)*8; // 5 bits to 8 bits
+//					//Log.i(TAG, "j=" + j + " r=" + msgData[j] + " g=" + msgData[j+1] + " b=" + msgData[j+2]);
+//					Log.i(TAG, msgData[j] + " " + msgData[j+1] + " " + msgData[j+2]);
+//				}
+//			}	
+			
+			// GetPixels returns ARGB_8888
+			for (int i=0, j=4; i<pixels.length; ++i, j+=3) {
+				msgData[j] = (pixels[i] >> 16) & 0xFF;
+				msgData[j+1] = (pixels[i] >> 8) & 0xFF;
+				msgData[j+2] = pixels[i] & 0xFF;
+				//Log.i(TAG, "j=" + j + " r=" + msgData[j] + " g=" + msgData[j+1] + " b=" + msgData[j+2]);
+				//Log.i(TAG, msgData[j] + " " + msgData[j+1] + " " + msgData[j+2]);
+			}
+			
+			
+			
+			Message msg = Message.obtain(null, AimProtocol.MSG_PORT_DATA);
+			Bundle bundle = new Bundle();
+			bundle.putIntArray("data", msgData);
+			bundle.putInt("datatype", AimProtocol.DATATYPE_INT_ARRAY);
+			msg.setData(bundle);
+			msgSend(mPortImageMessenger, msg);
+			
+			
+			//selectedImageBitmap.getPixels(pixels, offset, stride, x, y, width, height)
 
 			Log.i(TAG, "image: " + filePath + " rotation:" + rotation);
 		}
 		super.onActivityResult(requestCode, resultCode, data);
+	}
+	
+	//decodes image and scales it to reduce memory consumption
+//	private Bitmap decodeFile(File f, int maxWidth, int maxHeight){
+	private Bitmap decodeFile(File f, int maxPixels) {
+	    try {
+	        //Decode image size
+	        BitmapFactory.Options o = new BitmapFactory.Options();
+	        o.inJustDecodeBounds = true;
+	        BitmapFactory.decodeStream(new FileInputStream(f),null,o);
+
+	        //Find the correct scale value. It should be the power of 2.
+	        int scale=1;
+	        while (o.outWidth/scale * o.outHeight/scale >= maxPixels)
+	            scale*=2;
+
+	        //Decode with inSampleSize
+	        BitmapFactory.Options o2 = new BitmapFactory.Options();
+	        o2.inSampleSize=scale;
+	        return BitmapFactory.decodeStream(new FileInputStream(f), null, o2);
+	    } catch (FileNotFoundException e) {}
+	    return null;
 	}
 	
 	
@@ -371,15 +439,17 @@ public class MainActivity extends Activity {
 			Log.i(TAG, event.getX() + " " + event.getY());
 //			Log.i(TAG, event.toString());
 			
-			Message msg = Message.obtain(null, MSG_PORT_DATA);
+			Message msg = Message.obtain(null, AimProtocol.MSG_PORT_DATA);
 			Bundle bundle = new Bundle();
-			bundle.putInt("datatype", DATATYPE_FLOAT_ARRAY);
-			float[] data = new float[2];
-			data[0] = event.getX();
-			data[1] = event.getY();
+			float[] data = new float[4];
+			data[0] = 1;
+			data[1] = 2;
+			data[2] = event.getX();
+			data[3] = event.getY();
 			bundle.putFloatArray("data", data);
+			bundle.putInt("datatype", AimProtocol.DATATYPE_FLOAT_ARRAY);
 			msg.setData(bundle);
-			msgSend(mPortOutMessenger, msg);
+			msgSend(mPortPositionMessenger, msg);
 			
 			return true;
 		}

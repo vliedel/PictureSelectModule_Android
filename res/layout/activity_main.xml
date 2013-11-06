@@ -14,46 +14,6 @@
         android:layout_height="wrap_content"
         android:text="@string/hello_world" />
 
-    <Button
-        android:id="@+id/buttonSend"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_marginBottom="62dp"
-        android:layout_marginRight="18dp"
-        android:text="Send" />
-
-    <Button
-        android:id="@+id/buttonImage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/buttonSend"
-        android:layout_alignLeft="@+id/buttonSend"
-        android:layout_marginBottom="28dp"
-        android:text="Image" />
-
-    <EditText
-        android:id="@+id/messageInput"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/messageOutput"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="34dp"
-        android:ems="10"
-        android:imeActionId="@+id/sendMsg"
-        android:imeActionLabel="Send"
-        android:imeOptions="actionSend" />
-
-    <Button
-        android:id="@+id/buttonLogin"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/buttonImage"
-        android:layout_alignLeft="@+id/buttonImage"
-        android:layout_marginBottom="27dp"
-        android:text="Login" />
-
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="wrap_content"
@@ -62,5 +22,15 @@
         android:layout_below="@+id/messageOutput"
         android:layout_marginTop="48dp"
         android:src="@android:drawable/ic_menu_gallery" />
+
+    <Button
+        android:id="@+id/buttonImage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginBottom="45dp"
+        android:layout_marginRight="44dp"
+        android:text="Image" />
 
 </RelativeLayout>
